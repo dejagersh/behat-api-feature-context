@@ -14,6 +14,8 @@ use Psr\Http\Message\ResponseInterface;
  * Original credits to Phil Sturgeon (https://twitter.com/philsturgeon)
  * and Ben Corlett (https://twitter.com/ben_corlett).
  *
+ * Secondary credits to Ryan Weaver (https://twitter.com/weaverryan) from https://knpuniversity.com
+ *
  *
  * A Behat context aimed at doing one awesome thing: interacting with APIs
  */
@@ -48,7 +50,7 @@ class ApiFeatureContext implements Context
      *
      * @var array[]
      */
-    private $requestHeaders;
+    private $requestHeaders = array();
 
 
     /**
@@ -105,6 +107,32 @@ class ApiFeatureContext implements Context
         $this->requestHeaders[$headerName] = $value;
     }
 
+    /**
+     * @Then /^the response status code should be (?P<code>\d+)$/
+     */
+    public function iGetAResponse($statusCode)
+    {
+        $response = $this->getResponse();
 
+        if($response->getStatusCode() != $statusCode) {
+            throw new Exception(sprintf('Expected status code "%s" does not match observed status code "%s"', $statusCode, $response->getStatusCode()));
+        }
+    }
+
+
+    /**
+     * Checks the response exists and returns it.
+     *
+     * @throws Exception
+     * @return ResponseInterface
+     */
+    protected function getResponse()
+    {
+        if (! $this->response) {
+            throw new \Exception("You must first make a request to check a response.");
+        }
+
+        return $this->response;
+    }
 
 }

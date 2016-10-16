@@ -7,3 +7,4 @@ Feature: test feature
       my payload
     """
     When I request "GET /weightlogs"
+    Then the response status code should be 200
