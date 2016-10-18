@@ -53,7 +53,7 @@ class ApiFeatureContext implements Context
      *
      * @var ResponseInterface
      */
-    protected $response;
+    protected $lastResponse;
 
 
     /**
@@ -145,10 +145,10 @@ class ApiFeatureContext implements Context
 
         try {
             // Send request
-            $this->response = $this->client->send($this->lastRequest, $options);
+            $this->lastResponse = $this->client->send($this->lastRequest, $options);
 
         } catch (\GuzzleHttp\Exception\ClientException $e) { // Client exceptions (4xx status codes) are OK
-            $this->response = $e->getResponse();
+            $this->lastResponse = $e->getResponse();
         }
     }
 
@@ -176,7 +176,7 @@ class ApiFeatureContext implements Context
      */
     public function theHeaderShouldBe($headerName, $expectedHeaderValue)
     {
-        $response = $this->getResponse();
+        $response = $this->getLastResponse();
 
         assertEquals($expectedHeaderValue, (string) $response->getHeader($headerName));
     }
@@ -186,7 +186,7 @@ class ApiFeatureContext implements Context
      */
     public function theHeaderShouldExist($headerName)
     {
-        $response = $this->getResponse();
+        $response = $this->getLastResponse();
 
         assertTrue($response->hasHeader($headerName));
     }
@@ -213,7 +213,7 @@ class ApiFeatureContext implements Context
      */
     public function theResponseStatusCodeShouldBe($statusCode)
     {
-        $response = $this->getResponse();
+        $response = $this->getLastResponse();
 
         assertEquals($statusCode,
             $response->getStatusCode(),
@@ -498,13 +498,13 @@ class ApiFeatureContext implements Context
      * @throws Exception
      * @return ResponseInterface
      */
-    protected function getResponse()
+    protected function getLastResponse()
     {
-        if (! $this->response) {
+        if (! $this->lastResponse) {
             throw new \Exception("You must first make a request to check a response.");
         }
 
-        return $this->response;
+        return $this->lastResponse;
     }
 
 
@@ -516,7 +516,7 @@ class ApiFeatureContext implements Context
     protected function getResponsePayload()
     {
         if (! $this->responsePayload) {
-            $json = json_decode($this->getResponse()->getBody(), true);
+            $json = json_decode($this->getLastResponse()->getBody(), true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
                 $message = 'Failed to decode JSON body ';
@@ -532,7 +532,7 @@ class ApiFeatureContext implements Context
                         $message .= '(Unexpected control character found).';
                         break;
                     case JSON_ERROR_SYNTAX:
-                        $message .= '(Syntax error, malformed JSON): '."\n\n".$this->getResponse()->getBody();
+                        $message .= '(Syntax error, malformed JSON): '."\n\n".$this->getLastResponse()->getBody();
                         break;
                     case JSON_ERROR_UTF8:
                         $message .= '(Malformed UTF-8 characters, possibly incorrectly encoded).';
@@ -641,18 +641,18 @@ class ApiFeatureContext implements Context
      */
     public function printLastResponse()
     {
-        if ($this->response) {
+        if ($this->lastResponse) {
 
             // Build the first line of the response (protocol, protocol version, statuscode, reason phrase)
-            $response = 'HTTP/1.1 ' . $this->response->getStatusCode() . ' ' . $this->response->getReasonPhrase() . "\r\n";
+            $response = 'HTTP/1.1 ' . $this->lastResponse->getStatusCode() . ' ' . $this->lastResponse->getReasonPhrase() . "\r\n";
 
             // Add the headers
-            foreach($this->response->getHeaders() as $key => $value) {
+            foreach($this->lastResponse->getHeaders() as $key => $value) {
                 $response .= sprintf("%s: %s\r\n", $key, $value[0]);
             }
 
             // Add the response body
-            $response .= $this->prettifyJson($this->response->getBody());
+            $response .= $this->prettifyJson($this->lastResponse->getBody());
 
             // Print the response
             $this->printDebug($response);
