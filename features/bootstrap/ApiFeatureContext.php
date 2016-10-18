@@ -23,6 +23,7 @@ require_once __DIR__  . '/../../vendor/phpunit/phpunit/src/Framework/Assert/Func
  */
 class ApiFeatureContext implements Context
 {
+
     /**
      * Payload of the request
      *
@@ -142,8 +143,13 @@ class ApiFeatureContext implements Context
             $options = ['auth' => [$this->authUser, $this->authPassword]];
         }
 
-        // Send request
-        $this->response = $this->client->send($this->lastRequest, $options);
+        try {
+            // Send request
+            $this->response = $this->client->send($this->lastRequest, $options);
+
+        } catch (\GuzzleHttp\Exception\ClientException $e) { // Client exceptions (4xx status codes) are OK
+            $this->response = $e->getResponse();
+        }
     }
 
 
