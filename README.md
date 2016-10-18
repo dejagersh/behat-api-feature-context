@@ -5,3 +5,5 @@ I just rewrote the file to be compatible with the latest versions (as of Oct 16,
 
 #WARNING
 Most of these functions are not tested yet. I will be using this file for my projects and fix bugs as I encounter them. Be aware of this :)
+
+If you notice any problems, please create a new issue [here](https://github.com/thejager/behat-api-feature-context/issues/new) or if you would like to fix it yourself and create a pull request. :)
