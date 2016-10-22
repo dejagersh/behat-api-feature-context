@@ -1,7 +1,9 @@
 <?php
 
 use Behat\Behat\Context\Context;
+use Behat\Behat\Hook\Scope\AfterScenarioScope;
 use Behat\Gherkin\Node\PyStringNode;
+use Behat\Testwork\Tester\Result\TestResult;
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Request;
 use Psr\Http\Message\ResponseInterface;
@@ -102,6 +104,9 @@ class ApiFeatureContext implements Context
     protected $authPassword;
 
 
+    private $useFancyExceptionReporting = true;
+
+
     /**
      * Initializes context.
      *
@@ -147,8 +152,18 @@ class ApiFeatureContext implements Context
             // Send request
             $this->lastResponse = $this->client->send($this->lastRequest, $options);
 
-        } catch (\GuzzleHttp\Exception\ClientException $e) { // Client exceptions (4xx status codes) are OK
+        } catch (\GuzzleHttp\Exception\BadResponseException $e) {
+            $response = $e->getResponse();
+
+            // Sometimes the request will fail, at which point we have
+            // no response at all. Let Guzzle give an error here, it's
+            // pretty self-explanatory.
+            if ($response === null) {
+                throw $e;
+            }
+
             $this->lastResponse = $e->getResponse();
+            throw new \Exception('Bad response.');
         }
     }
 
@@ -726,5 +741,43 @@ class ApiFeatureContext implements Context
             sprintf('_embedded.%s.%s', $embeddedName, $property),
             $value
         );
+    }
+
+    /**
+     * @AfterScenario
+     */
+    public function printLastResponseOnError(AfterScenarioScope $scope)
+    {
+        if($scope->getTestResult()->getResultCode() == TestResult::FAILED) {
+            if($this->lastResponse === null) {
+                return;
+            }
+
+            $body = $this->lastResponse->getBody()->getContents();
+
+            $this->printDebug('');
+            $this->printDebug('<error>Failure!</error> when making the following request:');
+            $this->printDebug(sprintf('<comment>%s</comment>: <info>%s</info>', $this->lastRequest->getMethod(), $this->lastRequest->getUri())."\n");
+
+            if (in_array($this->lastResponse->getHeader('Content-Type'), ['application/json', 'application/problem+json'])) {
+                $this->printDebug($this->prettifyJson($body));
+            } else {
+                // the response is HTML - see if we should print all of it or some of it
+                $isValidHtml = strpos($body, '</body>') !== false;
+
+                if($this->useFancyExceptionReporting && $isValidHtml) {
+                    $this->printDebug('<error>Failure!</error> Below is a summary of the HTML response from the server.');
+
+                    // finds the h1 and h2 tags and prints them only
+                    $crawler = new Crawler($body);
+                    foreach($crawler->filter('h1, h2')->extract(array('_text')) as $header) {
+                        $this->printDebug(sprintf('        ' . $header));
+                    }
+                } else {
+                    $this->printDebug($body);
+                }
+            }
+
+        }
     }
 }
