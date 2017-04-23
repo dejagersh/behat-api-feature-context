@@ -193,7 +193,7 @@ class ApiFeatureContext implements Context
     {
         $response = $this->getLastResponse();
 
-        assertEquals($expectedHeaderValue, (string) $response->getHeader($headerName));
+        assertEquals($expectedHeaderValue, $response->getHeaderLine($headerName));
     }
 
     /**
