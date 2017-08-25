@@ -163,7 +163,11 @@ class ApiFeatureContext implements Context
             }
 
             $this->lastResponse = $e->getResponse();
-            throw new \Exception('Bad response.');
+            // if we have no status code, something went wrong
+            if($this->lastResponse->getStatusCode() == null){
+                throw new \Exception('Bad response.');
+            }
+            
         }
     }
 
